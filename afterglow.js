@@ -804,9 +804,10 @@ async function fetchBytes(url, tag) {
    check. */
 
 /* The 641 byte kernel patch set. It belongs to GOLDHEN, not to the composite
-   image: afterglow's own fifteen patches cover 25 of the 51 write sites, and
-   the thirty that are missing -- one block around 0x125791 and three singles
-   -- are exactly what GoldHEN's own code expects to find.
+   image: the blob writes 57 kernel text sites, of which afterglow covers 25 --
+   fifteen from PATCHES and ten more from BOOTSTRAP. The remaining 32 are
+   exactly what GoldHEN's own code expects to find: a block of 29 from
+   0x125791 to 0x125871, plus 0x2fcb5c, 0x391fc6 and 0x3be3c0.
 
    It runs for both image forms. A raw payload that started without it brought
    GoldHEN up (FTP answered) but left it running without its patches. */
@@ -1122,11 +1123,13 @@ async function loadGoldhen(url, k, kbase, room, vorab) {
   };
 
   /* The Lua chain ran a 641 byte kernel patch set before any of this, and
-     afterglow's fifteen are not the same set: the blob writes to 51 places,
-     of which afterglow covers 25. The thirty it does not -- a block around
-     0x125791 and three singles -- are what GoldHEN's own code expects to
-     find. The blob is position independent, takes no arguments, fetches the
-     kernel base itself through rdmsr and ends in ret, so it only has to be
+     afterglow's own are not the same set: the blob writes 57 kernel text
+     sites, of which afterglow covers 25 -- fifteen from PATCHES, ten from
+     BOOTSTRAP. The 32 it does not -- a block of 29 from 0x125791 to
+     0x125871, plus 0x2fcb5c, 0x391fc6 and 0x3be3c0 -- are what GoldHEN's
+     own code expects to find. The blob is position independent, takes no
+     arguments, fetches the kernel base itself through rdmsr and ends in
+     ret, so it only has to be
      put somewhere ring 0 may run from. This mapping is, as just measured. */
   /* It does not go into this mapping. The Lua chain puts it in the libc text
      tail at rva 0x130730 -- the same room afterglow runs its own ring 0

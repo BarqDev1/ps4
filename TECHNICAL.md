@@ -45,9 +45,11 @@ length check rejects it.
 
 ## The kernel patch set
 
-GoldHEN expects to find a patched kernel. afterglow's own fifteen patches cover
-25 of the 51 write sites; the thirty that are missing — one block around
-`0x125791` and three singles — are exactly the ones GoldHEN's code looks for.
+GoldHEN expects to find a patched kernel. The blob writes **57** kernel text
+sites, counted off the blob itself. afterglow covers 25 of them — fifteen from
+its `PATCHES` table and ten more written by its bootstrap stub. The remaining
+**32** are exactly the ones GoldHEN's code looks for: one block of 29 from
+`0x125791` to `0x125871`, plus `0x2fcb5c`, `0x391fc6` and `0x3be3c0`.
 
 `patchset.bin` (641 bytes, position independent, ends in `ret`) therefore runs
 before **every** GoldHEN payload, in both image forms.
