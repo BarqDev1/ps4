@@ -35,9 +35,13 @@ off again with nobody watching.
 |---|---|
 | `hen.bin` | ps4-hen `pre-release-main-182`, **already patched** (see below) |
 | `goldhen.bin` | GoldHEN, included with the author's permission |
-| `patchset.bin` | 641 bytes of kernel patches GoldHEN expects to find |
-| `afterglow.js`, `patchset.bin` | this work |
-| `jb.js`, `core.js`, `mem.js`, `int64.js`, `ps4_offsets.js` | from the raw13g host, trimmed |
+| `patchset-1400.bin`, `patchset-1352.bin` | the kernel patches GoldHEN expects to find, one set per firmware |
+| `afterglow.js` | this work |
+| `jb.js`, `ps4_offsets.js` | the raw13g host, trimmed |
+| `core.js`, `mem.js`, `int64.js` | the in-process primitive, by way of that host |
+| `index.html`, `jb.html`, `launch.js`, `style.css`, `meme.png` | the landing page and the run page |
+| `serve.sh` | the local server, with the headers this needs |
+| `cache.appcache`, `make-manifest.sh` | the offline cache and the script that rebuilds it |
 
 ### ps4-hen is patched here
 
@@ -55,6 +59,10 @@ If you bring your own build, change `kpayload/source/offsets/1400.c`,
 established: `TECHNICAL.md`.
 
 ## If it stops
+
+Expect to repeat one now and then. Ten hand-run rounds on 14.00 landed nine
+times; a failure in the WebKit stage costs nothing, so going again is cheap.
+13.52 has fewer runs behind it and no number worth quoting yet.
 
 The page tells you which of these happened.
 
@@ -82,8 +90,13 @@ which model and firmware you tried.
 
 ## Credits
 
-* **raw13g** — the host this page grew out of
-* **jordyidk** — [slopkit](https://github.com/jordyidk/slopkit)
+* **raw13g** — the host this page grew out of (`jb.js`, `ps4_offsets.js`,
+  the page scaffolding), MIT, see `LICENSE-raw13g`
+* **aminegold0** — [silverps4hen](https://github.com/aminegold0/silverps4hen),
+  where that host and its reworked primitive were published
+* **jordyidk** — [slopkit](https://github.com/jordyidk/slopkit), the PS5
+  jailbreak the in-process primitive (`core.js`, `mem.js`, `int64.js`)
+  descends from
 * **al-azif** — <https://github.com/al-azif/>
 * **SiSTRo** — GoldHEN
 * **Pharaoh2k**
@@ -95,5 +108,9 @@ which model and firmware you tried.
 
 Security research on hardware we own. No Sony code is redistributed.
 
-Licensed under the GNU Affero General Public License v3.0 or later. The raw13g
-substrate keeps its own license.
+`afterglow.js` and the patch sets are licensed under the GNU Affero General
+Public License v3.0 or later; see `LICENSE`. The bundled code keeps its own
+terms: `jb.js`, `ps4_offsets.js` and the page scaffolding are raw13g's under
+the MIT license, reproduced in `LICENSE-raw13g`. `core.js`, `mem.js` and
+`int64.js` are a reworked fork of slopkit's primitive and carry no license of
+their own — where they come from is in `TECHNICAL.md`.

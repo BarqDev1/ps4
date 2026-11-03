@@ -33,4 +33,4 @@ FILES="index.html jb.html style.css launch.js meme.png
   echo "NETWORK:"
   echo "*"
 } > "$OUT"
-echo "$OUT: $(grep -c '#' "$OUT") entries, $(wc -c < "$OUT") bytes"
+echo "$OUT: $(grep -cE '^[^#[:space:]]+ #' "$OUT") entries, $(wc -c < "$OUT") bytes"
