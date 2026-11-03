@@ -96,19 +96,5 @@ form.addEventListener("change", function (ev) {
   }
 });
 
-/* A run that reached the kernel swaps the address for this page and leaves
-   the marker behind (jb.js, at the end of the chain). Coming up on that
-   address means the browser restored a finished run, so the clock stays
-   stopped -- the choice is still restored and start still works, it just does
-   not go by itself. */
-var DONE = false;
-try {
-  DONE = new URLSearchParams(location.search).get("afterglow") === "done";
-} catch (e) {}
-
 restore();
-if (DONE) {
-  countEl.textContent = "kernel already patched - autostart held";
-} else if (autoBox.checked) {
-  startClock();
-}
+if (autoBox.checked) startClock();

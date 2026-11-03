@@ -399,6 +399,23 @@ let allDone = false,
     }
     const fwKey = key || "unknown";
 
+    /* afterglow's kernel offsets are 14.00 and nothing downstream checks
+       them. On another firmware the chain would come up in WebKit, then
+       write 14.00 addresses into a different kernel. Refuse before anything
+       is touched. */
+    const SUPPORTED = ["14.00", "13.52"];
+    if (params.get("afterglow") && SUPPORTED.indexOf(fwKey) < 0) {
+      mark("FW-UNSUPPORTED", fwKey + " -- this build has a kernel stage for "
+           + SUPPORTED.join(", ") + " only");
+      state("firmware " + fwKey + " is not supported", "fail");
+      showNotice(
+        "This build has a kernel stage for firmware " + SUPPORTED.join(", ") +
+        " only. Detected " + fwKey + " - nothing was run.",
+      );
+      allDone = true;
+      return;
+    }
+
     // How many tries the WebKit stage gets. An attempt costs nothing in the
     // kernel -- this stage is a userland UAF in JavaScript, and a miss is
     // simply repeated. About one in three lands, so a low ceiling gives up on
@@ -1017,7 +1034,7 @@ let allDone = false,
           p: p, callAddr: callAddr, bufAddr: bufAddr, errno: errno,
           params: params, keepAlive: keepAlive, mark: mark, state: state,
           libkernelBase: libkernelBase, webkitBase: webkitBase,
-          stubAddr: stubAddr, off: off,
+          stubAddr: stubAddr, off: off, fw: fwKey,
           prepareMany: prepareMany, runPrepared: runPrepared,
         };
         if (params.get("afterglow") === "probe") {
@@ -1035,11 +1052,9 @@ let allDone = false,
       // reload -- so the last address must not be the one that runs the
       // exploit again. Relative, so it lands on this folder's landing page
       // however the files are served -- under a host's subdirectory just as
-      // well as at a root. The marker tells that page to hold its autostart;
-      // without it the restored landing page would count down and run the
-      // whole chain a second time on an already patched kernel.
+      // well as at a root.
       try {
-        history.replaceState(null, "", "index.html?afterglow=done");
+        history.replaceState(null, "", "index.html");
       } catch (e) {}
       // Stop here. Without this the host's own chain would still run
       // afterwards -- afterglow IS the kernel stage, not a prelude to one.

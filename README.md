@@ -1,16 +1,16 @@
 # afterglow (web)
 
-Kernel exploit for the PlayStation 4 on firmware **14.00**, run from the
-console's own browser. It leaves the kernel readable and writable, `uid 0`,
-`mmap` handing out RWX and `syscall 11` as a kexec gate — so the usual payloads
-work as they do after any other kernel exploit.
+Kernel exploit for the PlayStation 4 on firmware **13.52** and **14.00**,
+run from the console's own browser. It leaves the kernel readable and
+writable, `uid 0`, `mmap` handing out RWX and `syscall 11` as a kexec gate —
+so the usual payloads work as they do after any other kernel exploit.
 
 This is the browser version. The same exploit also runs as a Lua payload from
 inside a game process.
 
 ## You need
 
-* PS4 on firmware 14.00, on your network
+* PS4 on firmware 13.52 or 14.00, on your network
 * A machine on the same network with `python3`
 
 Nothing is installed on the console. The pages are static files.
@@ -86,6 +86,7 @@ which model and firmware you tried.
 * **jordyidk** — [slopkit](https://github.com/jordyidk/slopkit)
 * **al-azif** — <https://github.com/al-azif/>
 * **SiSTRo** — GoldHEN
+* **Pharaoh2k**
 * **TheFlow, ChendoChap, abc, AlAzif, LightningMods, @egycnq** — the PS4 kernel
   patch and sandbox escape lineage these payloads build on
 * everyone who publishes their findings instead of sitting on them

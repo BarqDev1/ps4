@@ -37,17 +37,24 @@ class Handler(SimpleHTTPRequestHandler):
         ".js": "text/javascript",
         ".css": "text/css",
         ".bin": "application/octet-stream",
+        # Without this the manifest arrives as a download and the browser
+        # ignores it, so the offline cache never fills.
+        ".appcache": "text/cache-manifest",
     }
 
     CACHEABLE = (".png", ".jpg", ".jpeg", ".gif", ".webp", ".ico")
 
     def end_headers(self):
-        if self.path.split("?")[0].lower().endswith(self.CACHEABLE):
+        p = self.path.split("?")[0].lower()
+        if p.endswith(self.CACHEABLE):
             self.send_header("Cache-Control", "public, max-age=604800")
         else:
-            self.send_header("Cache-Control", "no-store, must-revalidate")
-            self.send_header("Pragma", "no-cache")
-            self.send_header("Expires", "0")
+            # no-cache, not no-store: the file may be KEPT, but has to be
+            # revalidated before it is used. A corrected module or payload
+            # still arrives immediately, while an unchanged 500 KB payload
+            # costs a 304 instead of a full download -- and no-store would
+            # also keep the offline cache from holding it at all.
+            self.send_header("Cache-Control", "no-cache, must-revalidate")
         super().end_headers()
 
     def log_message(self, fmt, *args):
