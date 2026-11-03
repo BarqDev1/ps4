@@ -94,7 +94,7 @@ which model and firmware you tried.
   the host this page grew out of (`jb.js`, `ps4_offsets.js`, the page
   scaffolding), MIT, see `LICENSE-raw13g`
 * **aminegold0** — [silverps4hen](https://github.com/aminegold0/silverps4hen),
-  where that host and its reworked primitive were published
+  the rebuilt version of that host this one actually descends from
 * **jordyidk** — [slopkit](https://github.com/jordyidk/slopkit), the PS5
   jailbreak the in-process primitive (`core.js`, `mem.js`, `int64.js`)
   descends from
