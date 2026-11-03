@@ -90,8 +90,9 @@ which model and firmware you tried.
 
 ## Credits
 
-* **raw13g** — the host this page grew out of (`jb.js`, `ps4_offsets.js`,
-  the page scaffolding), MIT, see `LICENSE-raw13g`
+* **raw13g** — [raw13g.github.io](https://github.com/raw13g/raw13g.github.io),
+  the host this page grew out of (`jb.js`, `ps4_offsets.js`, the page
+  scaffolding), MIT, see `LICENSE-raw13g`
 * **aminegold0** — [silverps4hen](https://github.com/aminegold0/silverps4hen),
   where that host and its reworked primitive were published
 * **jordyidk** — [slopkit](https://github.com/jordyidk/slopkit), the PS5
