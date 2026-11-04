@@ -17,6 +17,18 @@ var countEl = document.getElementById("count");
 var cacheEl = document.getElementById("cache");
 var ticker = null;
 var waitingForCache = false;
+var cacheTimer = null;
+var gone = false;
+
+/* How long the start may wait for the cache before it goes anyway.
+ *
+ * With no route the manifest check does not fail fast -- it sits on a
+ * network timeout, measured at 20-30 s on a console, and the page said
+ * "waiting for the cache" the whole time. Offline use is a first-class
+ * case here, not an edge case: the files are already on disk, and a run
+ * from them is exactly as good. So the wait is a courtesy with an upper
+ * bound, never a gate. */
+var CACHE_WAIT_MS = 4000;
 
 /* The offline cache, and the one state that must not be run through.
  *
@@ -110,16 +122,35 @@ function picked() {
   return radio ? radio.value : "goldhen";
 }
 
+function go() {
+  if (gone) return;
+  gone = true;
+  if (cacheTimer !== null) { clearTimeout(cacheTimer); cacheTimer = null; }
+  location.href = "jb.html?" + TARGET[picked()];
+}
+
+function offline() {
+  try { return navigator.onLine === false; } catch (e) { return false; }
+}
+
 function start() {
   stopClock();
-  /* Not a refusal -- a wait. The run begins by itself once the files are in. */
-  if (cacheBusy()) {
+  /* Not a refusal -- a bounded wait. The run begins by itself once the files
+     are in, and at the latest after CACHE_WAIT_MS. Offline it does not wait
+     at all: there is nothing to wait for. */
+  if (!offline() && cacheBusy()) {
     waitingForCache = true;
     countEl.textContent = "waiting for the cache";
     cacheNote();
+    if (cacheTimer === null) {
+      cacheTimer = setTimeout(function () {
+        cacheTimer = null;
+        if (!gone) { countEl.textContent = "cache did not answer - going anyway"; go(); }
+      }, CACHE_WAIT_MS);
+    }
     return;
   }
-  location.href = "jb.html?" + TARGET[picked()];
+  go();
 }
 
 function stopClock() {
